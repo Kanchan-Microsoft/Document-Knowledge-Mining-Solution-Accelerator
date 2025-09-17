@@ -233,13 +233,17 @@ public sealed class DistributedPipelineOrchestrator : BaseOrchestrator
             pipeline = updatedPipeline;
             pipeline.LastUpdate = DateTimeOffset.UtcNow;
 
-            this.Log.LogInformation("Handler {0} processed pipeline {1} successfully", currentStepName, pipeline.DocumentId);
+            this.Log.LogInformation("Handler {0} processed pipeline {1} successfully", 
+                currentStepName, 
+                pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
             pipeline.MoveToNextStep();
             await this.MoveForwardAsync(pipeline, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            this.Log.LogError("Handler {0} failed to process pipeline {1}", currentStepName, pipeline.DocumentId);
+            this.Log.LogError("Handler {0} failed to process pipeline {1}", 
+                currentStepName, 
+                pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
         }
 
         // Note: returning True, the message is removed from the queue
