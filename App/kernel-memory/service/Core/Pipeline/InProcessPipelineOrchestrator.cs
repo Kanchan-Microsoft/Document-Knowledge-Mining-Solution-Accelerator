@@ -178,19 +178,27 @@ public sealed class InProcessPipelineOrchestrator : BaseOrchestrator
             {
                 pipeline = updatedPipeline;
                 pipeline.LastUpdate = DateTimeOffset.UtcNow;
-                this.Log.LogInformation("Handler '{0}' processed pipeline '{1}/{2}' successfully", currentStepName, pipeline.Index, pipeline.DocumentId);
+                this.Log.LogInformation("Handler '{0}' processed pipeline '{1}/{2}' successfully", 
+                    currentStepName, 
+                    pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                    pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
                 pipeline.MoveToNextStep();
                 await this.UpdatePipelineStatusAsync(pipeline, cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                this.Log.LogError("Handler '{0}' failed to process pipeline '{1}/{2}'", currentStepName, pipeline.Index, pipeline.DocumentId);
+                this.Log.LogError("Handler '{0}' failed to process pipeline '{1}/{2}'", 
+                    currentStepName, 
+                    pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                    pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
                 throw new OrchestrationException($"Pipeline error, step {currentStepName} failed");
             }
         }
 
         await this.CleanUpAfterCompletionAsync(pipeline, cancellationToken).ConfigureAwait(false);
 
-        this.Log.LogInformation("Pipeline '{0}/{1}' complete", pipeline.Index, pipeline.DocumentId);
+        this.Log.LogInformation("Pipeline '{0}/{1}' complete", 
+            pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty),
+            pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
     }
 }

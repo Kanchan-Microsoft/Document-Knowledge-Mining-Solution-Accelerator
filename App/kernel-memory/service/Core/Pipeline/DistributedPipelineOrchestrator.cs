@@ -198,7 +198,9 @@ public sealed class DistributedPipelineOrchestrator : BaseOrchestrator
         // In case the pipeline has no steps
         if (pipeline.Complete)
         {
-            this.Log.LogInformation("Pipeline '{0}/{1}' complete", pipeline.Index, pipeline.DocumentId);
+            this.Log.LogInformation("Pipeline '{0}/{1}' complete", 
+                pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
             return;
         }
 
@@ -215,7 +217,9 @@ public sealed class DistributedPipelineOrchestrator : BaseOrchestrator
         // In case the pipeline has no steps
         if (pipeline.Complete)
         {
-            this.Log.LogInformation("Pipeline '{0}/{1}' complete", pipeline.Index, pipeline.DocumentId);
+            this.Log.LogInformation("Pipeline '{0}/{1}' complete", 
+                pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
             // Note: returning True, the message is removed from the queue
             return true;
         }
@@ -247,7 +251,9 @@ public sealed class DistributedPipelineOrchestrator : BaseOrchestrator
     {
         if (pipeline.Complete)
         {
-            this.Log.LogInformation("Pipeline '{0}/{1}' complete", pipeline.Index, pipeline.DocumentId);
+            this.Log.LogInformation("Pipeline '{0}/{1}' complete", 
+                pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
 
             // Save the pipeline status. If this fails the system should retry the current step.
             await this.UpdatePipelineStatusAsync(pipeline, cancellationToken).ConfigureAwait(false);
@@ -257,7 +263,10 @@ public sealed class DistributedPipelineOrchestrator : BaseOrchestrator
         else
         {
             string nextStepName = pipeline.RemainingSteps.First();
-            this.Log.LogInformation("Enqueueing pipeline '{0}/{1}' step '{2}'", pipeline.Index, pipeline.DocumentId, nextStepName);
+            this.Log.LogInformation("Enqueueing pipeline '{0}/{1}' step '{2}'", 
+                pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty),
+                pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty), 
+                nextStepName);
 
             // Execute as much logic as possible before writing the new pipeline state to disk,
             // to reduce the chance of the persisted state to be out of sync.
