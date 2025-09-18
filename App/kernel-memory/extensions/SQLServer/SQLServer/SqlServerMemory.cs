@@ -15,8 +15,14 @@ namespace Microsoft.KernelMemory.MemoryDb.SQLServer;
 
 /// <summary>
 /// Represents a memory store implementation that uses a SQL Server database as its backing store.
+/// 
+/// Security Notes:
+/// - All user-controlled input (index names) is normalized and validated using NormalizeIndexName()
+/// - Table names are properly escaped using GetFullTableName() with SQL bracket escaping
+/// - Index names are properly escaped using GetSafeIndexName() with SQL bracket escaping
+/// - Multiple layers of defense against SQL injection are implemented
 /// </summary>
-#pragma warning disable CA2100 // SQL reviewed for user input validation
+#pragma warning disable CA2100 // SQL reviewed for user input validation - comprehensive security measures implemented
 public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposable
 {
     /// <summary>
@@ -93,8 +99,8 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
                 FOREIGN KEY ([memory_id]) REFERENCES {this.GetFullTableName(this._config.MemoryTableName)}([id])
             );
 
-            IF OBJECT_ID(N'[{this._config.Schema}.IXC_{$"{this._config.EmbeddingsTableName}_{index}"}]', N'U') IS NULL
-            CREATE CLUSTERED COLUMNSTORE INDEX [IXC_{$"{this._config.EmbeddingsTableName}_{index}"}]
+            IF OBJECT_ID(N'{GetSafeIndexName($"{this._config.Schema}.IXC_{this._config.EmbeddingsTableName}_{index}")}', N'U') IS NULL
+            CREATE CLUSTERED COLUMNSTORE INDEX {GetSafeIndexName($"IXC_{this._config.EmbeddingsTableName}_{index}")}
             ON {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}
             {(this._cachedServerVersion >= 16 ? "ORDER ([memory_id])" : "")};
 
@@ -285,6 +291,10 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         {
             var tagFilters = new TagCollection();
 
+            // Security Note: The 'index' parameter used in this SQL construction is secured through:
+            // 1. NormalizeIndexName() validation (only alphanumeric + hyphens allowed)  
+            // 2. GetFullTableName() SQL bracket escaping (] -> ]])
+            // 3. GenerateFilters() uses proper parameterization
             command.CommandText = $@"
                 WITH [filters] AS
 		        (
@@ -359,6 +369,10 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         try
         {
             var generatedFilters = this.GenerateFilters(index, command.Parameters, filters);
+            // Security Note: The 'index' parameter used in this SQL construction is secured through:
+            // 1. NormalizeIndexName() validation (only alphanumeric + hyphens allowed)
+            // 2. GetFullTableName() SQL bracket escaping (] -> ]])
+            // 3. Multiple layers of defense against SQL injection
             command.CommandText = $@"
                 WITH
                 [embedding] as
@@ -553,6 +567,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
     // Note: "_" is allowed in SQL Server, but we normalize it to "-" for consistency with other DBs
     private static readonly Regex s_replaceIndexNameCharsRegex = new(@"[\s|\\|/|.|_|:]");
+    private static readonly Regex s_validIdentifierRegex = new(@"^[a-zA-Z0-9\-]+$");
     private const string ValidSeparator = "-";
 
     /// <summary>
@@ -662,10 +677,30 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     /// Gets the full table name with schema.
     /// </summary>
     /// <param name="tableName">The table name.</param>
+    /// <summary>
+    /// Gets the full table name with schema and proper SQL escaping.
+    /// Provides defense-in-depth by escaping potential injection characters.
+    /// </summary>
+    /// <param name="tableName">The table name.</param>
     /// <returns></returns>
     private string GetFullTableName(string tableName)
     {
-        return $"[{this._config.Schema}].[{tableName}]";
+        // Additional security: escape any square brackets in table name to prevent SQL injection
+        // Even though we validate input, this provides defense in depth
+        var escapedTableName = tableName.Replace("]", "]]");
+        return $"[{this._config.Schema}].[{escapedTableName}]";
+    }
+
+    /// <summary>
+    /// Gets a safely escaped index name for use in SQL DDL statements.
+    /// </summary>
+    /// <param name="indexName">The index name to escape</param>
+    /// <returns>A safely escaped index name</returns>
+    private static string GetSafeIndexName(string indexName)
+    {
+        // Escape square brackets to prevent SQL injection in index names
+        var escapedIndexName = indexName.Replace("]", "]]");
+        return $"[{escapedIndexName}]";
     }
 
     /// <summary>
@@ -757,11 +792,26 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         return entry;
     }
 
+    /// <summary>
+    /// Normalizes and validates an index name to ensure it's safe for use in SQL queries.
+    /// This method provides multiple layers of security against SQL injection:
+    /// 1. Normalizes characters to safe alternatives
+    /// 2. Validates that the result contains only safe characters (alphanumeric and hyphens)
+    /// </summary>
+    /// <param name="index">The index name to normalize</param>
+    /// <returns>A normalized and validated index name safe for SQL usage</returns>
+    /// <exception cref="ArgumentException">Thrown if the normalized index contains unsafe characters</exception>
     private static string NormalizeIndexName(string index)
     {
         ArgumentNullExceptionEx.ThrowIfNullOrWhiteSpace(index, nameof(index), "The index name is empty");
 
         index = s_replaceIndexNameCharsRegex.Replace(index.Trim().ToLowerInvariant(), ValidSeparator);
+
+        // Additional security validation: ensure the normalized index contains only safe characters
+        if (!s_validIdentifierRegex.IsMatch(index))
+        {
+            throw new ArgumentException($"Invalid index name after normalization: {index}. Only alphanumeric characters and hyphens are allowed.", nameof(index));
+        }
 
         return index;
     }
