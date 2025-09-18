@@ -63,7 +63,7 @@ public sealed class GenerateEmbeddingsParallelHandler : GenerateEmbeddingsHandle
     {
         if (!this._embeddingGenerationEnabled)
         {
-            this._log.LogTrace("Embedding generation is disabled, skipping - pipeline '{0}/{1}'", pipeline.Index, pipeline.DocumentId);
+            this._log.LogTrace("Embedding generation is disabled, skipping - pipeline '{0}/{1}'", pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty), pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty));
             return (true, pipeline);
         }
 
@@ -99,7 +99,7 @@ public sealed class GenerateEmbeddingsParallelHandler : GenerateEmbeddingsHandle
         PartitionInfo[][] batches = partitions.Chunk(batchSize).ToArray();
 
         this._log.LogTrace("Generating embeddings, pipeline '{0}/{1}', batch generator '{2}', batch size {3}, batch count {4}",
-            pipeline.Index, pipeline.DocumentId, generator.GetType().FullName, generator.MaxBatchSize, batches.Length);
+            pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty), pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty), generator.GetType().FullName, generator.MaxBatchSize, batches.Length);
 
         // Multiple batches in parallel
         await Parallel.ForEachAsync(batches, cancellationToken, async (partitionsInfo, ct) =>
@@ -108,7 +108,7 @@ public sealed class GenerateEmbeddingsParallelHandler : GenerateEmbeddingsHandle
 
             int totalTokens = strings.Sum(s => ((ITextEmbeddingGenerator)generator).CountTokens(s));
             this._log.LogTrace("Generating embeddings, pipeline '{0}/{1}', generator '{2}', batch size {3}, total {4} tokens",
-                pipeline.Index, pipeline.DocumentId, generator.GetType().FullName, strings.Length, totalTokens);
+                pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty), pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty), generator.GetType().FullName, strings.Length, totalTokens);
 
             Embedding[] embeddings = await generator.GenerateEmbeddingBatchAsync(strings, cancellationToken).ConfigureAwait(false);
             await this.SaveEmbeddingsToDocumentStorageAsync(
@@ -125,13 +125,13 @@ public sealed class GenerateEmbeddingsParallelHandler : GenerateEmbeddingsHandle
         CancellationToken cancellationToken)
     {
         this._log.LogTrace("Generating embeddings, pipeline '{0}/{1}', generator '{2}', partition count {3}",
-            pipeline.Index, pipeline.DocumentId, generator.GetType().FullName, partitions.Count);
+            pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty), pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty), generator.GetType().FullName, partitions.Count);
 
         // Multiple partitions in parallel
         await Parallel.ForEachAsync(partitions, cancellationToken, async (partitionInfo, ct) =>
             {
                 this._log.LogTrace("Generating embedding, pipeline '{0}/{1}', generator '{2}', content size {3} tokens",
-                    pipeline.Index, pipeline.DocumentId, generator.GetType().FullName, generator.CountTokens(partitionInfo.PartitionContent));
+                    pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty), pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty), generator.GetType().FullName, generator.CountTokens(partitionInfo.PartitionContent));
                 var embedding = await generator.GenerateEmbeddingAsync(partitionInfo.PartitionContent, ct).ConfigureAwait(false);
                 await this.SaveEmbeddingToDocumentStorageAsync(
                         pipeline, partitionInfo, embedding, GetEmbeddingProviderName(generator), GetEmbeddingGeneratorName(generator), ct)

@@ -299,12 +299,12 @@ public sealed class AzureBlobsStorage : IDocumentStorage
 
         if (size == 0)
         {
-            this._log.LogWarning("The file {0}/{1} is empty", directoryName, fileName);
+            this._log.LogWarning("The file {0}/{1} is empty", directoryName.Replace("\r", string.Empty).Replace("\n", string.Empty), fileName.Replace("\r", string.Empty).Replace("\n", string.Empty));
         }
 
         await this.ReleaseBlobAsync(blobLeaseClient, lease, cancellationToken).ConfigureAwait(false);
 
-        this._log.LogTrace("Blob {0} ready, size {1}", blobName, size);
+        this._log.LogTrace("Blob {0} ready, size {1}", blobName.Replace("\r", string.Empty).Replace("\n", string.Empty), size);
     }
 
     private async Task DeleteBlobsByPrefixAsync(string prefix, CancellationToken cancellationToken)
@@ -314,7 +314,7 @@ public sealed class AzureBlobsStorage : IDocumentStorage
             throw new DocumentStorageException("The blob prefix is empty, stopping the process to prevent data loss");
         }
 
-        this._log.LogInformation("Deleting blobs at {0}", prefix);
+        this._log.LogInformation("Deleting blobs at {0}", prefix.Replace("\r",string.Empty).Replace("\n",string.Empty));
 
         AsyncPageable<BlobItem>? blobList = this._containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken);
         await foreach (Page<BlobItem> page in blobList.AsPages().WithCancellation(cancellationToken).ConfigureAwait(false))

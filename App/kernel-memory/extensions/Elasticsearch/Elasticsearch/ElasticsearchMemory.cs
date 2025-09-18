@@ -55,7 +55,7 @@ public class ElasticsearchMemory : IMemoryDb
         var existsResponse = await this._client.Indices.ExistsAsync(index, cancellationToken).ConfigureAwait(false);
         if (existsResponse.Exists)
         {
-            this._log.LogTrace("Index {Index} already exists.", index);
+            this._log.LogTrace("Index {Index} already exists.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
             return;
         }
 
@@ -94,7 +94,7 @@ public class ElasticsearchMemory : IMemoryDb
                 }),
             cancellationToken).ConfigureAwait(false);
 
-        this._log.LogTrace("Index {Index} created.", index);
+        this._log.LogTrace("Index {Index} created.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
     }
 
     /// <inheritdoc />
@@ -125,11 +125,11 @@ public class ElasticsearchMemory : IMemoryDb
 
         if (delResponse.IsSuccess())
         {
-            this._log.LogTrace("Index {Index} deleted.", index);
+            this._log.LogTrace("Index {Index} deleted.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
         }
         else
         {
-            this._log.LogWarning("Index {Index} delete failed.", index);
+            this._log.LogWarning("Index {Index} delete failed.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
         }
     }
 
@@ -213,7 +213,12 @@ public class ElasticsearchMemory : IMemoryDb
         index = IndexNameHelper.Convert(index, this._config);
 
         this._log.LogTrace("Searching for '{Text}' on index '{IndexName}' with filters {Filters}. {MinRelevance} {Limit} {WithEmbeddings}",
-            text, index, filters.ToDebugString(), minRelevance, limit, withEmbeddings);
+            text.Replace("\r", string.Empty).Replace("\n", string.Empty), 
+            index.Replace("\r", string.Empty).Replace("\n", string.Empty), 
+            filters.ToDebugString(), 
+            minRelevance, 
+            limit, 
+            withEmbeddings);
 
         Embedding embedding = await this._embeddingGenerator.GenerateEmbeddingAsync(text, cancellationToken).ConfigureAwait(false);
         var coll = embedding.Data.ToArray();
@@ -258,7 +263,10 @@ public class ElasticsearchMemory : IMemoryDb
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         this._log.LogTrace("Querying index '{IndexName}' with filters {Filters}. {Limit} {WithEmbeddings}",
-            index, filters.ToDebugString(), limit, withEmbeddings);
+            index.Replace("\r", string.Empty).Replace("\n", string.Empty), 
+            filters.ToDebugString(), 
+            limit, 
+            withEmbeddings);
 
         if (limit < 0)
         {
