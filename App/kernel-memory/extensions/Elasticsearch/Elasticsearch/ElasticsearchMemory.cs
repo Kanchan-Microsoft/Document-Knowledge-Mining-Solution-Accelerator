@@ -264,7 +264,7 @@ public class ElasticsearchMemory : IMemoryDb
     {
         this._log.LogTrace("Querying index '{IndexName}' with filters {Filters}. {Limit} {WithEmbeddings}",
             index.Replace("\r", string.Empty).Replace("\n", string.Empty), 
-            filters.ToDebugString(), 
+            filters.ToDebugString().Replace("\r", string.Empty).Replace("\n", string.Empty) , 
             limit, 
             withEmbeddings);
 

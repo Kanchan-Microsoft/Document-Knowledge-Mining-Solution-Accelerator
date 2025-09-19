@@ -601,9 +601,24 @@ export function ChatRoom({ searchResultDocuments, selectedDocuments, chatWithDoc
     );
 }
 function uuidv4() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
+    // Use cryptographically secure random number generation for session IDs
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        // Modern browsers with Web Crypto API
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const array = new Uint8Array(1);
+            crypto.getRandomValues(array);
+            const r = array[0] % 16;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    } else {
+        // Fallback for environments without Web Crypto API
+        console.warn('Web Crypto API not available, using fallback UUID generation');
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 }
 
