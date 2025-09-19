@@ -14,7 +14,7 @@ export const PageNumberTab: React.FC<IPageNumberTabProps> = ({ selectedTab, sele
   }
 
   const imageUrl = window.ENV.STORAGE_URL +
-    selectedPageMetadata.document_url.replace(/^(?:\/\/|[^/]+)*\//, "") +
+    selectedPageMetadata.document_url.replace(/^(?:https?:\/\/)?[^/]*\//, "") +
     "/" 
 
   return (

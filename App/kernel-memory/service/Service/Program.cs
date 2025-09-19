@@ -147,6 +147,20 @@ internal static class Program
 
         if (config.Service.RunWebService)
         {
+            // Add security headers middleware to prevent clickjacking and other security vulnerabilities
+            app.Use(async (context, next) =>
+            {
+                // X-Frame-Options: Prevents the page from being displayed in a frame, protecting against clickjacking
+                context.Response.Headers.Add("X-Frame-Options", "DENY");
+                
+                // Additional security headers for comprehensive protection
+                context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+                context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
+                
+                await next();
+            });
+
             if (enableCORS) { app.UseCors(CORSPolicyName); }
 
             app.UseSwagger(config);

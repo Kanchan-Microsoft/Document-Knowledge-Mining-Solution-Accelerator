@@ -67,7 +67,7 @@ public sealed class AWSS3Storage : IDocumentStorage, IDisposable
     /// <inheritdoc />
     public async Task DeleteIndexDirectoryAsync(string index, CancellationToken cancellationToken = default)
     {
-        this._log.LogTrace("Deleting index '{0}'", index);
+        this._log.LogTrace("Deleting index '{0}'", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
         if (string.IsNullOrWhiteSpace(index))
         {
             throw new DocumentStorageException("The index name is empty, stopping the process to prevent data loss");
@@ -126,11 +126,11 @@ public sealed class AWSS3Storage : IDocumentStorage, IDisposable
         var objectKey = $"{index}/{documentId}/{fileName}";
         var len = streamContent.Length;
 
-        this._log.LogTrace("Writing object {0} ...", objectKey);
+        this._log.LogTrace("Writing object {0} ...", objectKey.Replace("\r", string.Empty).Replace("\n", string.Empty));
 
         if (streamContent.Length == 0)
         {
-            this._log.LogWarning("The file {0} is empty", objectKey);
+            this._log.LogWarning("The file {0} is empty", objectKey.Replace("\r", string.Empty).Replace("\n", string.Empty));
         }
 
         await this._client.PutObjectAsync(new PutObjectRequest
@@ -140,7 +140,7 @@ public sealed class AWSS3Storage : IDocumentStorage, IDisposable
             InputStream = streamContent
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        this._log.LogTrace("Object {0} ready, size {1}", objectKey, len);
+        this._log.LogTrace("Object {0} ready, size {1}", objectKey.Replace("\r", string.Empty).Replace("\n", string.Empty), len);
     }
 
     /// <inheritdoc />
@@ -177,7 +177,7 @@ public sealed class AWSS3Storage : IDocumentStorage, IDisposable
         {
             if (logErrIfNotFound)
             {
-                this._log.LogInformation("File not found: {0}", objectKey);
+                this._log.LogInformation("File not found: {0}", objectKey.Replace("\r", string.Empty).Replace("\n", string.Empty));
             }
 
             throw new DocumentStorageFileNotFoundException("File not found", e);
@@ -199,7 +199,7 @@ public sealed class AWSS3Storage : IDocumentStorage, IDisposable
             throw new DocumentStorageException("The object prefix is empty, stopping the process to prevent data loss");
         }
 
-        this._log.LogTrace("Deleting objects with prefix '{0}'", prefix);
+        this._log.LogTrace("Deleting objects with prefix '{0}'", prefix.Replace("\r", string.Empty).Replace("\n", string.Empty));
 
         var allObjects = new List<S3Object>();
         var request = new ListObjectsV2Request

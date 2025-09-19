@@ -33,7 +33,7 @@ public abstract class GenerateEmbeddingsHandlerBase
         var partitionsToProcess = new List<PartitionInfo>();
 
         this._log.LogTrace("Generating list of files to process, pipeline '{0}/{1}', sub-step '{2}'",
-            pipeline.Index, pipeline.DocumentId, subStepName);
+            pipeline.Index.Replace("\r", string.Empty).Replace("\n", string.Empty), pipeline.DocumentId.Replace("\r", string.Empty).Replace("\n", string.Empty), subStepName);
         foreach (DataPipeline.FileDetails uploadedFile in pipeline.Files)
         {
             foreach (KeyValuePair<string, DataPipeline.GeneratedFileDetails> generatedFile in uploadedFile.GeneratedFiles)

@@ -232,13 +232,13 @@ public sealed class AzureBlobsStorage : IDocumentStorage
                     async () => (await blobClient.DownloadStreamingAsync(null, cancellationToken).ConfigureAwait(false)).Value.Content);
             }
 
-            if (logErrIfNotFound) { this._log.LogError("Unable to download file {0}", blobName); }
+            if (logErrIfNotFound) { this._log.LogError("Unable to download file {0}", blobName.Replace("\r", string.Empty).Replace("\n", string.Empty)); }
 
             throw new DocumentStorageFileNotFoundException("Unable to fetch blob content");
         }
         catch (RequestFailedException e) when (e.Status == 404)
         {
-            this._log.LogInformation("File not found: {0}", blobName);
+            this._log.LogInformation("File not found: {0}", blobName.Replace("\r", string.Empty).Replace("\n", string.Empty));
             throw new DocumentStorageFileNotFoundException("File not found", e);
         }
     }
@@ -279,7 +279,7 @@ public sealed class AzureBlobsStorage : IDocumentStorage
 
         options.HttpHeaders = new BlobHttpHeaders { ContentType = fileType };
 
-        this._log.LogTrace("Writing blob {0} ...", blobName);
+        this._log.LogTrace("Writing blob {0} ...", blobName..Replace("\r", string.Empty).Replace("\n", string.Empty));
 
         long size;
         switch (content)

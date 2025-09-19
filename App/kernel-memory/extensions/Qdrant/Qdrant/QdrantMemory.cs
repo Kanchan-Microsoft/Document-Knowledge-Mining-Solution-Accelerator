@@ -116,7 +116,7 @@ public sealed class QdrantMemory : IMemoryDb, IMemoryDbUpsertBatch
                 qdrantPoint = QdrantPoint<DefaultQdrantPayload>.FromMemoryRecord(record);
                 qdrantPoint.Id = Guid.NewGuid();
 
-                this._log.LogTrace("Generate new Qdrant point ID {0} and record ID {1}", qdrantPoint.Id, record.Id);
+                this._log.LogTrace("Generate new Qdrant point ID {0} and record ID {1}", qdrantPoint.Id, record.Id.Replace("\r", string.Empty).Replace("\n", string.Empty));
             }
             else
             {

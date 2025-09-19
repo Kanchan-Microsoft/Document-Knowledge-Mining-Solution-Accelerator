@@ -204,7 +204,7 @@ internal sealed class VolatileFileSystem : IFileSystem
 
             if (!volumeData.TryGetValue(filePath, out result!))
             {
-                this._log.LogError("File not found: {0}", filePath);
+                this._log.LogError("File not found: {0}", filePath.Replace("\r", string.Empty).Replace("\n", string.Empty));
                 throw new FileNotFoundException($"File not found: {filePath}");
             }
         }
@@ -235,7 +235,7 @@ internal sealed class VolatileFileSystem : IFileSystem
             BinaryData file = new(string.Empty);
             if (!volumeData.TryGetValue(filePath, out file!))
             {
-                this._log.LogError("File not found: {0}", filePath);
+                this._log.LogError("File not found: {0}", filePath.Replace("\r", string.Empty).Replace("\n", string.Empty));
                 throw new FileNotFoundException($"File not found: {filePath}");
             }
 
