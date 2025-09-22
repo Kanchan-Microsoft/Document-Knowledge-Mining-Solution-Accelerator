@@ -71,6 +71,11 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
+        if (!IsValidSqlIdentifier(index))
+        {
+            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
+        }
+
 
         if (await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -132,6 +137,13 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
+        if (!IsValidSqlIdentifier(index))
+
+        {
+
+            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
+
+        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -185,6 +197,13 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
+        if (!IsValidSqlIdentifier(index))
+
+        {
+
+            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
+
+        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -264,6 +283,13 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
+        if (!IsValidSqlIdentifier(index))
+
+        {
+
+            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
+
+        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -333,6 +359,13 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
+        if (!IsValidSqlIdentifier(index))
+
+        {
+
+            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
+
+        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -449,6 +482,13 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
+        if (!IsValidSqlIdentifier(index))
+
+        {
+
+            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
+
+        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -554,6 +594,34 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     // Note: "_" is allowed in SQL Server, but we normalize it to "-" for consistency with other DBs
     private static readonly Regex s_replaceIndexNameCharsRegex = new(@"[\s|\\|/|.|_|:]");
     private const string ValidSeparator = "-";
+    
+    /// <summary>
+
+    /// Validate that string is safe to use as a SQL identifier
+
+    /// </summary>
+
+    private static bool IsValidSqlIdentifier(string identifier)
+    {
+
+        // Only allow alphanumeric and underscores
+        if (string.IsNullOrWhiteSpace(identifier)) return false;
+
+        // Identifiers in SQL Server can be up to 128 characters
+        if (identifier.Length > 128) return false;
+        foreach (var c in identifier)
+
+        {
+
+            if (!(char.IsLetterOrDigit(c) || c == '_'))
+            {
+
+                return false;
+            }
+
+        }
+        return true;
+    }
 
     /// <summary>
     /// Prepare instance, ensuring tables exist and reusable info is cached.
