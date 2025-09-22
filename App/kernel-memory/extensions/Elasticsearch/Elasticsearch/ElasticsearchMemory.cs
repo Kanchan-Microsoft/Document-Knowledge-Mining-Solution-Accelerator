@@ -215,7 +215,7 @@ public class ElasticsearchMemory : IMemoryDb
         this._log.LogTrace("Searching for '{Text}' on index '{IndexName}' with filters {Filters}. {MinRelevance} {Limit} {WithEmbeddings}",
             text.Replace("\r", string.Empty).Replace("\n", string.Empty), 
             index.Replace("\r", string.Empty).Replace("\n", string.Empty), 
-            filters.ToDebugString(), 
+            filters.ToDebugString().Replace("\r", string.Empty).Replace("\n", string.Empty), 
             minRelevance, 
             limit, 
             withEmbeddings);

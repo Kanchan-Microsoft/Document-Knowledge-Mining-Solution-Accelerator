@@ -561,7 +561,7 @@ internal sealed class PostgresDbClient : IDisposable
                 NpgsqlCommand cmd = connection.CreateCommand();
                 await using (cmd.ConfigureAwait(false))
                 {
-#pragma warning disable CA2100 // SQL reviewed - tableName secured via PostgresSchema.ValidateTableName + quote escaping, columns/filters from internal methods
+#pragma warning disable CA2100 // SQL reviewed
                     cmd.CommandText = @$"
                 SELECT {columns} FROM {tableName}
                 WHERE {filterSql}
@@ -572,7 +572,6 @@ internal sealed class PostgresDbClient : IDisposable
 
                     cmd.Parameters.AddWithValue("@limit", limit);
                     cmd.Parameters.AddWithValue("@offset", offset);
-#pragma warning restore CA2100
 
                     if (sqlUserValues != null)
                     {
@@ -637,7 +636,7 @@ internal sealed class PostgresDbClient : IDisposable
                 NpgsqlCommand cmd = connection.CreateCommand();
                 await using (cmd.ConfigureAwait(false))
                 {
-#pragma warning disable CA2100 // SQL reviewed - tableName secured via PostgresSchema.ValidateTableName + quote escaping
+#pragma warning disable CA2100 // SQL reviewed
                     cmd.CommandText = $"DELETE FROM {tableName} WHERE {this._colId}=@id";
                     cmd.Parameters.AddWithValue("@id", id);
 #pragma warning restore CA2100
@@ -733,12 +732,6 @@ internal sealed class PostgresDbClient : IDisposable
 
     /// <summary>
     /// Get full table name with schema from table name
-    /// <summary>
-    /// Returns the table name including schema and prefix, with proper PostgreSQL identifier escaping.
-    /// Security: Provides multiple layers of protection against SQL injection:
-    /// 1. PostgresSchema.ValidateTableName() ensures only safe characters (alphanumeric + hyphens)
-    /// 2. Double quotes provide PostgreSQL identifier escaping  
-    /// 3. Additional quote escaping for defense-in-depth
     /// </summary>
     /// <param name="tableName"></param>
     /// <returns>Valid table name including schema</returns>
@@ -747,10 +740,7 @@ internal sealed class PostgresDbClient : IDisposable
         tableName = this.WithTableNamePrefix(tableName);
         PostgresSchema.ValidateTableName(tableName);
 
-        // Additional security: escape any double quotes in table name to prevent SQL injection
-        // Even though we validate input, this provides defense in depth
-        var escapedTableName = tableName.Replace("\"", "\"\"");
-        return $"{this._schema}.\"{escapedTableName}\"";
+        return $"{this._schema}.\"{tableName}\"";
     }
 
     private string WithTableNamePrefix(string tableName)
