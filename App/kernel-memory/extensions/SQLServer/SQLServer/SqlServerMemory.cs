@@ -73,6 +73,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         index = NormalizeIndexName(index);
         if (!IsValidSqlIdentifier(index))
         {
+            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
         }
 
@@ -138,11 +139,9 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
         index = NormalizeIndexName(index);
         if (!IsValidSqlIdentifier(index))
-
         {
-
+            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-
         }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
@@ -198,11 +197,9 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
         index = NormalizeIndexName(index);
         if (!IsValidSqlIdentifier(index))
-
         {
-
+            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-
         }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
@@ -284,11 +281,9 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
         index = NormalizeIndexName(index);
         if (!IsValidSqlIdentifier(index))
-
         {
-
+            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-
         }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
@@ -360,11 +355,9 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
         index = NormalizeIndexName(index);
         if (!IsValidSqlIdentifier(index))
-
         {
-
+            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-
         }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
@@ -483,11 +476,9 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
         index = NormalizeIndexName(index);
         if (!IsValidSqlIdentifier(index))
-
         {
-
+            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-
         }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
@@ -609,18 +600,8 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
         // Identifiers in SQL Server can be up to 128 characters
         if (identifier.Length > 128) return false;
-        foreach (var c in identifier)
-
-        {
-
-            if (!(char.IsLetterOrDigit(c) || c == '_'))
-            {
-
-                return false;
-            }
-
-        }
-        return true;
+        // Must start with a letter or underscore, rest letters/numbers/underscores
+        return System.Text.RegularExpressions.Regex.IsMatch(identifier, @"^[A-Za-z_][A-Za-z0-9_]{0,127}$");
     }
 
     /// <summary>
