@@ -71,7 +71,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsValidSqlIdentifier(index))
+        if (!IsSafeTableName(index))
         {
             this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
@@ -138,7 +138,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsValidSqlIdentifier(index))
+        if (!IsSafeTableName(index))
         {
             this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
@@ -196,7 +196,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsValidSqlIdentifier(index))
+        if (!IsSafeTableName(index))
         {
             this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
@@ -280,7 +280,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsValidSqlIdentifier(index))
+        if (!IsSafeTableName(index))
         {
             this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
@@ -354,7 +354,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsValidSqlIdentifier(index))
+        if (!IsSafeTableName(index))
         {
             this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
@@ -475,7 +475,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsValidSqlIdentifier(index))
+        if (!IsSafeTableName(index))
         {
             this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
             throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
@@ -585,24 +585,6 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     // Note: "_" is allowed in SQL Server, but we normalize it to "-" for consistency with other DBs
     private static readonly Regex s_replaceIndexNameCharsRegex = new(@"[\s|\\|/|.|_|:]");
     private const string ValidSeparator = "-";
-    
-    /// <summary>
-
-    /// Validate that string is safe to use as a SQL identifier
-
-    /// </summary>
-
-    private static bool IsValidSqlIdentifier(string identifier)
-    {
-
-        // Only allow alphanumeric and underscores
-        if (string.IsNullOrWhiteSpace(identifier)) return false;
-
-        // Identifiers in SQL Server can be up to 128 characters
-        if (identifier.Length > 128) return false;
-        // Must start with a letter or underscore, rest letters/numbers/underscores
-        return System.Text.RegularExpressions.Regex.IsMatch(identifier, @"^[A-Za-z_][A-Za-z0-9_]{0,127}$");
-    }
 
     /// <summary>
     /// Prepare instance, ensuring tables exist and reusable info is cached.
@@ -816,4 +798,23 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     }
 
     #endregion
+    /// <summary>
+    /// Strictly validates that an index/table name is safe to use in SQL.
+    /// Only allows ASCII letters, digits, and underscores. Disallows reserved SQL keywords.
+    /// </summary>
+    private static bool IsSafeTableName(string index)
+    {
+        if (string.IsNullOrWhiteSpace(index)) return false;
+        // Only allow a-z, A-Z, 0-9, underscore. Reject anything else.
+        if (!Regex.IsMatch(index, @"^[a-zA-Z0-9_]+$")) return false;
+
+        // Optionally, prevent reserved SQL keywords (add more as needed)
+        string[] ReservedKeywords = new[] {
+            "select", "insert", "update", "delete", "drop", "alter", "truncate", "create", "table", "from", "where", "union"
+        };
+        // case-insensitive check
+        if (ReservedKeywords.Any(keyword => string.Equals(index, keyword, StringComparison.OrdinalIgnoreCase)))
+            return false;
+        return true;
+    }
 }
