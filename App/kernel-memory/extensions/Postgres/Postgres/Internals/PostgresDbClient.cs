@@ -15,7 +15,15 @@ using NpgsqlTypes;
 using Pgvector;
 
 namespace Microsoft.KernelMemory.Postgres;
-
+ // Validate that a SQL identifier contains only safe characters (letters, digits, underscores, or dashes)
+    private static void ValidateSafeSqlIdentifier(string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier)
+            || !System.Text.RegularExpressions.Regex.IsMatch(identifier, @"^[a-zA-Z0-9_\-]+$"))
+        {
+            throw new ArgumentException("Unsafe SQL identifier detected: " + identifier);
+        }
+    }
 /// <summary>
 /// An implementation of a client for Postgres. This class is used to managing postgres database operations.
 /// </summary>
@@ -626,6 +634,8 @@ internal sealed class PostgresDbClient : IDisposable
         CancellationToken cancellationToken = default)
     {
         tableName = this.WithSchemaAndTableNamePrefix(tableName);
+        // Validate the generated table name before using it in SQL.
+        ValidateSafeSqlIdentifier(tableName.Replace($"{this._schema}.", "").Replace("\"", ""));
         this._log.LogTrace("Deleting record '{0}' from table '{1}'", id, tableName);
 
         NpgsqlConnection connection = await this.ConnectAsync(cancellationToken).ConfigureAwait(false);
