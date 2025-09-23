@@ -637,7 +637,7 @@ internal sealed class PostgresDbClient : IDisposable
                 await using (cmd.ConfigureAwait(false))
                 {
 #pragma warning disable CA2100 // SQL reviewed
-                    cmd.CommandText = $"DELETE FROM {tableName} WHERE {this._colId}=@id";
+                    cmd.CommandText = $"DELETE FROM {tableName} WHERE \"{this._colId}\"=@id";
                     cmd.Parameters.AddWithValue("@id", id);
 #pragma warning restore CA2100
 
