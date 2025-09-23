@@ -50,6 +50,23 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     private int _cachedServerVersion = int.MinValue;
 
     /// <summary>
+    /// Validates index name for table usage (alphanumeric and underscore only)
+    /// </summary>
+    /// <param name="index">Index name to validate</param>
+    private static void ValidateIndexName(string index)
+    {
+        if (string.IsNullOrWhiteSpace(index))
+        {
+            throw new ArgumentException("Index name is required and cannot be empty.");
+        }
+        // Accept only letters, digits, and underscore
+        if (!Regex.IsMatch(index, @"^[a-zA-Z0-9_]+$"))
+        {
+            throw new ArgumentException("Index name contains invalid characters. Only letters, numbers, and underscores are allowed.");
+        }
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SqlServerMemory"/> class.
     /// </summary>
     /// <param name="config">The SQL server instance configuration.</param>
@@ -769,20 +786,5 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
     #endregion
     
-    /// <summary>
-    /// Validates index name for table usage (alphanumeric and underscore only)
-    /// </summary>
-    /// <param name="index">Index name to validate</param>
-    private static void ValidateIndexName(string index)
-    {
-        if (string.IsNullOrWhiteSpace(index))
-        {
-            throw new ArgumentException("Index name is required and cannot be empty.");
-        }
-        // Accept only letters, digits, and underscore
-        if (!Regex.IsMatch(index, @"^[a-zA-Z0-9_]+$"))
-        {
-            throw new ArgumentException("Index name contains invalid characters. Only letters, numbers, and underscores are allowed.");
-        }
-    }
+    
 }
