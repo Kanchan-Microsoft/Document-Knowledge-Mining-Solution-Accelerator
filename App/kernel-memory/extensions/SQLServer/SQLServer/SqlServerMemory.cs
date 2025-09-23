@@ -443,6 +443,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     /// <inheritdoc/>
     public async IAsyncEnumerable<string> UpsertBatchAsync(string index, IEnumerable<MemoryRecord> records, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        ValidateIndexName(index);
         List<MemoryRecord> list = records.ToList();
         this._log.LogDebug("Upserting records, batch size {0}", list.Count);
 
@@ -767,4 +768,21 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     }
 
     #endregion
+    
+    /// <summary>
+    /// Validates index name for table usage (alphanumeric and underscore only)
+    /// </summary>
+    /// <param name="index">Index name to validate</param>
+    private static void ValidateIndexName(string index)
+    {
+        if (string.IsNullOrWhiteSpace(index))
+        {
+            throw new ArgumentException("Index name is required and cannot be empty.");
+        }
+        // Accept only letters, digits, and underscore
+        if (!Regex.IsMatch(index, @"^[a-zA-Z0-9_]+$"))
+        {
+            throw new ArgumentException("Index name contains invalid characters. Only letters, numbers, and underscores are allowed.");
+        }
+    }
 }
