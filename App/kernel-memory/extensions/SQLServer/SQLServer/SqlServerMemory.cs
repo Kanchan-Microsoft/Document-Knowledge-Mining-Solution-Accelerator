@@ -467,6 +467,10 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
+        if (!IsSafeIndexName(index))
+        {
+            throw new ArgumentException("Unsafe index name detected.");
+        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -785,6 +789,16 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     }
 
     #endregion
-    
-    
+
+    /// <summary>
+    /// Validates that an index name contains only safe characters (letters, digits, underscore)
+    /// </summary>
+    private static bool IsSafeIndexName(string index)
+    {
+        // Adjust allowed length according to your system's table naming policies if necessary
+        if (string.IsNullOrEmpty(index) || index.Length > 128) return false;
+        return Regex.IsMatch(index, @"^[A-Za-z0-9_]+$");
+    }
+
+
 }
