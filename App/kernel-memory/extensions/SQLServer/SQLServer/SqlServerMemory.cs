@@ -71,28 +71,11 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsSafeTableName(index))
-        {
-            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
-            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-        }
-
 
         if (await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
             // Index already exists
             return;
-        }
-
-        // Safely construct table names with validation
-        var embeddingsTableName = $"{this._config.EmbeddingsTableName}_{index}";
-        var tagsTableName = $"{this._config.TagsTableName}_{index}";
-        
-        // Validate the constructed table names
-        if (!IsSafeTableName(embeddingsTableName) || !IsSafeTableName(tagsTableName))
-        {
-            this._log.LogError("Generated table names are invalid for index {index}", index);
-            throw new ArgumentException($"The index '{index}' generates invalid table names.");
         }
 
         var sql = $@"
@@ -101,8 +84,8 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
             INSERT INTO {this.GetFullTableName(this._config.MemoryCollectionTableName)}([id])
             VALUES (@index);
 
-            IF OBJECT_ID(N'{this.GetFullTableName(embeddingsTableName)}', N'U') IS NULL
-            CREATE TABLE {this.GetFullTableName(embeddingsTableName)}
+            IF OBJECT_ID(N'{this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}', N'U') IS NULL
+            CREATE TABLE {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}
             (
                 [memory_id] UNIQUEIDENTIFIER NOT NULL,
                 [vector_value_id] [int] NOT NULL,
@@ -110,13 +93,13 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
                 FOREIGN KEY ([memory_id]) REFERENCES {this.GetFullTableName(this._config.MemoryTableName)}([id])
             );
 
-            IF OBJECT_ID(N'[{this._config.Schema}.IXC_{embeddingsTableName}]', N'U') IS NULL
-            CREATE CLUSTERED COLUMNSTORE INDEX [IXC_{embeddingsTableName}]
-            ON {this.GetFullTableName(embeddingsTableName)}
+            IF OBJECT_ID(N'[{this._config.Schema}.IXC_{$"{this._config.EmbeddingsTableName}_{index}"}]', N'U') IS NULL
+            CREATE CLUSTERED COLUMNSTORE INDEX [IXC_{$"{this._config.EmbeddingsTableName}_{index}"}]
+            ON {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}
             {(this._cachedServerVersion >= 16 ? "ORDER ([memory_id])" : "")};
 
-            IF OBJECT_ID(N'{this.GetFullTableName(tagsTableName)}', N'U') IS NULL
-            CREATE TABLE {this.GetFullTableName(tagsTableName)}
+            IF OBJECT_ID(N'{this.GetFullTableName($"{this._config.TagsTableName}_{index}")}', N'U') IS NULL
+            CREATE TABLE {this.GetFullTableName($"{this._config.TagsTableName}_{index}")}
             (
                 [memory_id] UNIQUEIDENTIFIER NOT NULL,
                 [name] NVARCHAR(256)  NOT NULL,
@@ -149,11 +132,6 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsSafeTableName(index))
-        {
-            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
-            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -161,29 +139,18 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
             return;
         }
 
-        // Safely construct table names with validation
-        var embeddingsTableName = $"{this._config.EmbeddingsTableName}_{index}";
-        var tagsTableName = $"{this._config.TagsTableName}_{index}";
-        
-        // Validate the constructed table names
-        if (!IsSafeTableName(embeddingsTableName) || !IsSafeTableName(tagsTableName))
-        {
-            this._log.LogError("Generated table names are invalid for index {index}", index);
-            throw new ArgumentException($"The index '{index}' generates invalid table names.");
-        }
-
         var sql = $@"
             BEGIN TRANSACTION;
 
             DELETE [embeddings]
-            FROM {this.GetFullTableName(embeddingsTableName)} [embeddings]
+            FROM {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")} [embeddings]
             INNER JOIN {this.GetFullTableName(this._config.MemoryTableName)} ON [embeddings].[memory_id] = {this.GetFullTableName(this._config.MemoryTableName)}.[id]
             WHERE
                 {this.GetFullTableName(this._config.MemoryTableName)}.[collection] = @index
             AND {this.GetFullTableName(this._config.MemoryTableName)}.[key]=@key;
 
             DELETE [tags]
-            FROM {this.GetFullTableName(tagsTableName)} [tags]
+            FROM {this.GetFullTableName($"{this._config.TagsTableName}_{index}")} [tags]
             INNER JOIN {this.GetFullTableName(this._config.MemoryTableName)} ON [tags].[memory_id] = {this.GetFullTableName(this._config.MemoryTableName)}.[id]
             WHERE
                 {this.GetFullTableName(this._config.MemoryTableName)}.[collection] = @index
@@ -218,11 +185,6 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsSafeTableName(index))
-        {
-            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
-            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -230,22 +192,11 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
             return;
         }
 
-        // Safely construct table names with validation
-        var embeddingsTableName = $"{this._config.EmbeddingsTableName}_{index}";
-        var tagsTableName = $"{this._config.TagsTableName}_{index}";
-        
-        // Validate the constructed table names
-        if (!IsSafeTableName(embeddingsTableName) || !IsSafeTableName(tagsTableName))
-        {
-            this._log.LogError("Generated table names are invalid for index {index}", index);
-            throw new ArgumentException($"The index '{index}' generates invalid table names.");
-        }
-
         var sql = $@"
             BEGIN TRANSACTION;
 
-            DROP TABLE {this.GetFullTableName(embeddingsTableName)};
-            DROP TABLE {this.GetFullTableName(tagsTableName)};
+            DROP TABLE {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")};
+            DROP TABLE {this.GetFullTableName($"{this._config.TagsTableName}_{index}")};
 
             DELETE FROM {this.GetFullTableName(this._config.MemoryCollectionTableName)}
                              WHERE [id] = @index;
@@ -313,11 +264,6 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsSafeTableName(index))
-        {
-            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
-            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -387,11 +333,6 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsSafeTableName(index))
-        {
-            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
-            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
@@ -417,16 +358,6 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         SqlCommand command = connection.CreateCommand();
         try
         {
-            // Safely construct table name with validation
-            var embeddingsTableName = $"{this._config.EmbeddingsTableName}_{index}";
-            
-            // Validate the constructed table name for security
-            if (!IsSafeTableName(embeddingsTableName))
-            {
-                this._log.LogError("Generated embeddings table name is invalid for index {index}", index);
-                throw new ArgumentException($"The index '{index}' generates an invalid embeddings table name.");
-            }
-            
             var generatedFilters = this.GenerateFilters(index, command.Parameters, filters);
             command.CommandText = $@"
                 WITH
@@ -441,24 +372,24 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
                 [similarity] AS
                 (
                     SELECT TOP (@limit)
-                    {this.GetFullTableName(embeddingsTableName)}.[memory_id],
-                    SUM([embedding].[vector_value] * {this.GetFullTableName(embeddingsTableName)}.[vector_value]) /
+                    {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.[memory_id],
+                    SUM([embedding].[vector_value] * {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.[vector_value]) /
                     (
                         SQRT(SUM([embedding].[vector_value] * [embedding].[vector_value]))
                         *
-                        SQRT(SUM({this.GetFullTableName(embeddingsTableName)}.[vector_value] * {this.GetFullTableName(embeddingsTableName)}.[vector_value]))
+                        SQRT(SUM({this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.[vector_value] * {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.[vector_value]))
                     ) AS cosine_similarity
-                    -- sum([embedding].[vector_value] * {this.GetFullTableName(embeddingsTableName)}.[vector_value]) as cosine_distance -- Optimized as per https://platform.openai.com/docs/guides/embeddings/which-distance-function-should-i-use
+                    -- sum([embedding].[vector_value] * {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.[vector_value]) as cosine_distance -- Optimized as per https://platform.openai.com/docs/guides/embeddings/which-distance-function-should-i-use
                 FROM
                     [embedding]
                 INNER JOIN
-                    {this.GetFullTableName(embeddingsTableName)} ON [embedding].vector_value_id = {this.GetFullTableName(embeddingsTableName)}.vector_value_id
+                    {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")} ON [embedding].vector_value_id = {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.vector_value_id
                 INNER JOIN
-                    {this.GetFullTableName(this._config.MemoryTableName)} ON {this.GetFullTableName(embeddingsTableName)}.[memory_id] = {this.GetFullTableName(this._config.MemoryTableName)}.[id]
+                    {this.GetFullTableName(this._config.MemoryTableName)} ON {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.[memory_id] = {this.GetFullTableName(this._config.MemoryTableName)}.[id]
                 WHERE 1=1
                 {generatedFilters}
                 GROUP BY
-                    {this.GetFullTableName(embeddingsTableName)}.[memory_id]
+                    {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")}.[memory_id]
                 ORDER BY
                     cosine_similarity DESC
                 )
@@ -518,26 +449,10 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (!this._isReady) { await this.InitAsync(cancellationToken).ConfigureAwait(false); }
 
         index = NormalizeIndexName(index);
-        if (!IsSafeTableName(index))
-        {
-            this._log.LogError("Rejected SQL index name {index} due to invalid characters", index);
-            throw new ArgumentException($"The index '{index}' contains invalid characters and cannot be used as a SQL identifier.");
-        }
 
         if (!await this.DoesIndexExistsAsync(index, cancellationToken).ConfigureAwait(false))
         {
             throw new IndexNotFoundException($"The index '{index}' does not exist.");
-        }
-
-        // Safely construct table names with validation
-        var embeddingsTableName = $"{this._config.EmbeddingsTableName}_{index}";
-        var tagsTableName = $"{this._config.TagsTableName}_{index}";
-        
-        // Validate the constructed table names
-        if (!IsSafeTableName(embeddingsTableName) || !IsSafeTableName(tagsTableName))
-        {
-            this._log.LogError("Generated table names are invalid for index {index}", index);
-            throw new ArgumentException($"The index '{index}' generates invalid table names.");
         }
 
         var sql = $@"
@@ -552,7 +467,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
                     INSERT ([id], [key], [collection], [payload], [tags], [embedding])
                     VALUES (NEWID(), @key, @index, @payload, @tags, @embedding);
 
-                MERGE {this.GetFullTableName(embeddingsTableName)} AS [tgt]
+                MERGE {this.GetFullTableName($"{this._config.EmbeddingsTableName}_{index}")} AS [tgt]
                 USING (
                     SELECT
                         {this.GetFullTableName(this._config.MemoryTableName)}.[id],
@@ -574,12 +489,12 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
                             [src].[vector_value] );
 
                 DELETE FROM [tgt]
-                FROM  {this.GetFullTableName(tagsTableName)} AS [tgt]
+                FROM  {this.GetFullTableName($"{this._config.TagsTableName}_{index}")} AS [tgt]
                 INNER JOIN {this.GetFullTableName(this._config.MemoryTableName)} ON [tgt].[memory_id] = {this.GetFullTableName(this._config.MemoryTableName)}.[id]
                 WHERE {this.GetFullTableName(this._config.MemoryTableName)}.[key] = @key
                         AND {this.GetFullTableName(this._config.MemoryTableName)}.[collection] = @index;
 
-                MERGE {this.GetFullTableName(tagsTableName)} AS [tgt]
+                MERGE {this.GetFullTableName($"{this._config.TagsTableName}_{index}")} AS [tgt]
                 USING (
                     SELECT
                         {this.GetFullTableName(this._config.MemoryTableName)}.[id],
@@ -744,20 +659,12 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     }
 
     /// <summary>
-    /// Gets the full table name with schema and proper escaping.
-    /// This method validates the table name for security before constructing the full name.
+    /// Gets the full table name with schema.
     /// </summary>
-    /// <param name="tableName">The table name to escape and format.</param>
-    /// <returns>The fully qualified and escaped table name.</returns>
+    /// <param name="tableName">The table name.</param>
+    /// <returns></returns>
     private string GetFullTableName(string tableName)
     {
-        // Validate the table name for security
-        if (!IsSafeTableName(tableName))
-        {
-            this._log.LogError("Rejected unsafe table name: {tableName}", tableName);
-            throw new ArgumentException($"The table name '{tableName}' contains invalid characters and cannot be used as a SQL identifier.", nameof(tableName));
-        }
-        
         return $"[{this._config.Schema}].[{tableName}]";
     }
 
@@ -778,16 +685,6 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
         if (filters is null || filters.Count <= 0 || filters.All(f => f.Count <= 0))
         {
             return string.Empty;
-        }
-
-        // Safely construct table name with validation
-        var tagsTableName = $"{this._config.TagsTableName}_{index}";
-        
-        // Validate the constructed table name for security
-        if (!IsSafeTableName(tagsTableName))
-        {
-            this._log.LogError("Generated tags table name is invalid for index {index}", index);
-            throw new ArgumentException($"The index '{index}' generates an invalid tags table name.");
         }
 
         filterBuilder.Append("AND ( ");
@@ -815,7 +712,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
                 filterBuilder.Append(CultureInfo.CurrentCulture, $@"EXISTS (
                          SELECT
 	                        1
-                        FROM {this.GetFullTableName(tagsTableName)} AS [tags]
+                        FROM {this.GetFullTableName($"{this._config.TagsTableName}_{index}")} AS [tags]
                         WHERE
 	                        [tags].[memory_id] = {this.GetFullTableName(this._config.MemoryTableName)}.[id]
                             AND [name] = @filter_{i}_{j}_name
@@ -870,62 +767,4 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     }
 
     #endregion
-    /// <summary>
-    /// Strictly validates that an index/table name is safe to use in SQL.
-    /// Only allows ASCII letters, digits, and underscores. Disallows reserved SQL keywords.
-    /// </summary>
-    private static bool IsSafeTableName(string index)
-    {
-        if (string.IsNullOrWhiteSpace(index)) return false;
-        
-        // Only allow a-z, A-Z, 0-9, underscore. Reject anything else.
-        if (!Regex.IsMatch(index, @"^[a-zA-Z0-9_]+$")) return false;
-        
-        // Must start with a letter or underscore (not a digit)
-        if (!Regex.IsMatch(index, @"^[a-zA-Z_]")) return false;
-        
-        // Length restrictions for SQL Server identifiers
-        if (index.Length > 128) return false;
-
-        // Prevent reserved SQL keywords from being used as table names.
-        string[] ReservedKeywords = new[] {
-            "select", "insert", "update", "delete", "drop", "alter", "truncate", "create", "table", "from", "where", "union",
-            "join", "inner", "outer", "left", "right", "group", "order", "by", "having", "case", "when", "then", "else",
-            "end", "exists", "in", "not", "and", "or", "null", "is", "as", "on", "with", "distinct", "top", "all",
-            "database", "schema", "index", "view", "procedure", "function", "trigger", "primary", "foreign", "key",
-            "constraint", "check", "unique", "default", "identity", "autoincrement", "begin", "commit", "rollback",
-            "transaction", "exec", "execute", "declare", "set", "if", "else", "while", "for", "cursor", "open",
-            "close", "fetch", "deallocate", "cast", "convert", "count", "sum", "avg", "min", "max", "substring",
-            "len", "length", "upper", "lower", "trim", "ltrim", "rtrim", "replace", "charindex", "patindex"
-        };
-        
-        // Case-insensitive check for reserved keywords
-        if (ReservedKeywords.Any(keyword => string.Equals(index, keyword, StringComparison.OrdinalIgnoreCase)))
-            return false;
-            
-        return true;
-    }
-
-    /// <summary>
-    /// Safely constructs a table name with proper SQL identifier escaping.
-    /// This method ensures that table names are properly quoted and safe from injection.
-    /// </summary>
-    private string GetSafeTableName(string baseTableName, string? suffix = null)
-    {
-        // Validate the base table name
-        if (!IsSafeTableName(baseTableName))
-        {
-            throw new ArgumentException($"Invalid table name: {baseTableName}", nameof(baseTableName));
-        }
-        
-        // If suffix is provided, validate it as well
-        if (!string.IsNullOrEmpty(suffix) && !IsSafeTableName(suffix))
-        {
-            throw new ArgumentException($"Invalid table name suffix: {suffix}", nameof(suffix));
-        }
-        
-        // Construct the table name with proper escaping
-        var tableName = string.IsNullOrEmpty(suffix) ? baseTableName : $"{baseTableName}_{suffix}";
-        return $"[{this._config.Schema}].[{tableName}]";
-    }
 }
