@@ -687,6 +687,22 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     /// <returns></returns>
     private string GetFullTableName(string tableName)
     {
+        // Ensure that any table names that use user input (index) are strictly checked
+        // E.g., input could be: EmbeddingsTableName_index or MemoryTableName
+        // EmbeddingsTableName safe? (assume configuration)
+        // Check if tableName includes an underscore and extract the index part
+        var indexPart = string.Empty;
+        var embeddingPrefix = $"{this._config.EmbeddingsTableName}_";
+        if (tableName.StartsWith(embeddingPrefix, StringComparison.Ordinal))
+        {
+            // Table is e.g. EmbeddingsTableName_index
+            indexPart = tableName.Substring(embeddingPrefix.Length);
+        }
+        // If we detected an index, validate it
+        if (!string.IsNullOrEmpty(indexPart) && !IsSafeIndexName(indexPart))
+        {
+            throw new ArgumentException("Unsafe index name detected in table name.");
+        }
         return $"[{this._config.Schema}].[{tableName}]";
     }
 
