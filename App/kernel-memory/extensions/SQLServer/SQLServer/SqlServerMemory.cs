@@ -698,7 +698,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
             // Table is e.g. EmbeddingsTableName_index
             indexPart = tableName.Substring(embeddingPrefix.Length);
         }
-        // If we detected an index, validate it
+        // Validate that index part is safe (even after normalization)
         if (!string.IsNullOrEmpty(indexPart) && !IsSafeIndexName(indexPart))
         {
             throw new ArgumentException("Unsafe index name detected in table name.");
@@ -801,6 +801,11 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
 
         index = s_replaceIndexNameCharsRegex.Replace(index.Trim().ToLowerInvariant(), ValidSeparator);
 
+        if (!IsSafeIndexName(index))
+        {
+            throw new ArgumentException("Unsafe index name after normalization. Index must match ^[a-z0-9_]+$ and be <= 128 chars.", nameof(index));
+        }
+
         return index;
     }
 
@@ -813,7 +818,7 @@ public sealed class SqlServerMemory : IMemoryDb, IMemoryDbUpsertBatch, IDisposab
     {
         // Adjust allowed length according to your system's table naming policies if necessary
         if (string.IsNullOrEmpty(index) || index.Length > 128) return false;
-        return Regex.IsMatch(index, @"^[A-Za-z0-9_]+$");
+        return Regex.IsMatch(index, @"^[a-z0-9_]+$");
     }
 
 
