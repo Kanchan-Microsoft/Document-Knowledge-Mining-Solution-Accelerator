@@ -279,7 +279,7 @@ public sealed class AzureBlobsStorage : IDocumentStorage
 
         options.HttpHeaders = new BlobHttpHeaders { ContentType = fileType };
 
-        this._log.LogTrace("Writing blob {0} ...", blobName..Replace("\r", string.Empty).Replace("\n", string.Empty));
+        this._log.LogTrace("Writing blob {0} ...", blobName.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
 
         long size;
         switch (content)

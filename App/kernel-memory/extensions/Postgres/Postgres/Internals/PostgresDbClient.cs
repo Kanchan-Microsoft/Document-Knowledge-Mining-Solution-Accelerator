@@ -15,15 +15,7 @@ using NpgsqlTypes;
 using Pgvector;
 
 namespace Microsoft.KernelMemory.Postgres;
- // Validate that a SQL identifier contains only safe characters (letters, digits, underscores, or dashes)
-    private static void ValidateSafeSqlIdentifier(string identifier)
-    {
-        if (string.IsNullOrWhiteSpace(identifier)
-            || !System.Text.RegularExpressions.Regex.IsMatch(identifier, @"^[a-zA-Z0-9_\-]+$"))
-        {
-            throw new ArgumentException("Unsafe SQL identifier detected: " + identifier);
-        }
-    }
+
 /// <summary>
 /// An implementation of a client for Postgres. This class is used to managing postgres database operations.
 /// </summary>
@@ -787,5 +779,18 @@ internal sealed class PostgresDbClient : IDisposable
     {
         return BitConverter.ToUInt32(SHA256.HashData(Encoding.UTF8.GetBytes(resourceId)), 0)
                % short.MaxValue;
+    }
+
+    /// <summary>
+    /// Validate that a SQL identifier contains only safe characters (letters, digits, underscores, or dashes)
+    /// </summary>
+    /// <param name="identifier">SQL identifier to validate</param>
+    private static void ValidateSafeSqlIdentifier(string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier)
+            || !System.Text.RegularExpressions.Regex.IsMatch(identifier, @"^[a-zA-Z0-9_\-]+$"))
+        {
+            throw new ArgumentException("Unsafe SQL identifier detected: " + identifier);
+        }
     }
 }

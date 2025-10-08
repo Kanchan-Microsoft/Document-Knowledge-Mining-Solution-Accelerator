@@ -55,7 +55,7 @@ public class ElasticsearchMemory : IMemoryDb
         var existsResponse = await this._client.Indices.ExistsAsync(index, cancellationToken).ConfigureAwait(false);
         if (existsResponse.Exists)
         {
-            this._log.LogTrace("Index {Index} already exists.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
+            this._log.LogTrace("Index {Index} already exists.", index.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
             return;
         }
 
@@ -94,7 +94,7 @@ public class ElasticsearchMemory : IMemoryDb
                 }),
             cancellationToken).ConfigureAwait(false);
 
-        this._log.LogTrace("Index {Index} created.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
+        this._log.LogTrace("Index {Index} created.", index.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
     }
 
     /// <inheritdoc />
@@ -125,11 +125,11 @@ public class ElasticsearchMemory : IMemoryDb
 
         if (delResponse.IsSuccess())
         {
-            this._log.LogTrace("Index {Index} deleted.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
+            this._log.LogTrace("Index {Index} deleted.", index.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
         }
         else
         {
-            this._log.LogWarning("Index {Index} delete failed.", index.Replace("\r", string.Empty).Replace("\n", string.Empty));
+            this._log.LogWarning("Index {Index} delete failed.", index.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal));
         }
     }
 
@@ -213,11 +213,11 @@ public class ElasticsearchMemory : IMemoryDb
         index = IndexNameHelper.Convert(index, this._config);
 
         this._log.LogTrace("Searching for '{Text}' on index '{IndexName}' with filters {Filters}. {MinRelevance} {Limit} {WithEmbeddings}",
-            text.Replace("\r", string.Empty).Replace("\n", string.Empty), 
-            index.Replace("\r", string.Empty).Replace("\n", string.Empty), 
-            filters.ToDebugString().Replace("\r", string.Empty).Replace("\n", string.Empty), 
-            minRelevance, 
-            limit, 
+            text.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            index.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            filters.ToDebugString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            minRelevance,
+            limit,
             withEmbeddings);
 
         Embedding embedding = await this._embeddingGenerator.GenerateEmbeddingAsync(text, cancellationToken).ConfigureAwait(false);
@@ -263,9 +263,9 @@ public class ElasticsearchMemory : IMemoryDb
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         this._log.LogTrace("Querying index '{IndexName}' with filters {Filters}. {Limit} {WithEmbeddings}",
-            index.Replace("\r", string.Empty).Replace("\n", string.Empty), 
-            filters.ToDebugString().Replace("\r", string.Empty).Replace("\n", string.Empty) , 
-            limit, 
+            index.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            filters.ToDebugString().Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal),
+            limit,
             withEmbeddings);
 
         if (limit < 0)
